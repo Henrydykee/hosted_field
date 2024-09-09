@@ -6,41 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Payment Form with Hosted Fields</title>
   <script src="https://cdn.pinpayments.com/pin.hosted_fields.v1.js"></script>
-
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://fonts.cdnfonts.com/css/avenir" rel="stylesheet">
+
   <style type="text/css" media="all">
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      margin: 0;
-      padding: 20px;
       background-color: #f5f5f5;
+       font-family: 'Avenir';
     }
 
-    .logo {
-      margin-bottom: 20px;
-      max-width: 150px;
-    }
-
-    #payment_form {
+    .container {
       width: 100%;
       max-width: 400px;
       padding: 20px;
+    }
+
+    .logo {
+      display: block;
+      margin: 0 auto 20px;
+      max-width: 150px;
+      height: auto;
+    }
+
+    #payment_form {
       background-color: white;
       border-radius: 8px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
     }
 
     .pin-form-field {
-      height: 2.5em;
       width: 100%;
-      border: 1px solid black;
+      height: 2.5em;
+      border: 1px solid rgb(153, 148, 148);
       padding: 0 0.5em;
       margin-bottom: 1em;
+      margin-top: 5px;
       font-size: 1em;
+      border-radius: 5px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    .col {
+      flex: 1;
     }
 
     .error_message {
@@ -58,20 +87,31 @@
       width: 100%;
       cursor: pointer;
       font-size: 1.1em;
+      font-family: 'Avenir';
     }
 
     input[type="submit"]:hover {
       background-color: darkorange;
+      font-family: 'Avenir';
+      
     }
 
-    /* Responsive styles for smaller screens */
+    #serverResponse {
+      margin-top: 20px;
+      text-align: center;
+    }
+
     @media (max-width: 480px) {
-      body {
+      .container {
         padding: 10px;
       }
 
       #payment_form {
-        padding: 15px;
+        padding: 20px;
+      }
+
+      .logo {
+        max-width: 100px;
       }
 
       .pin-form-field {
@@ -83,44 +123,46 @@
         padding: 14px;
         font-size: 1.2em;
       }
-
-      .logo {
-        max-width: 100px;
-        margin-bottom: 15px;
-      }
     }
   </style>
 </head>
 
 <body>
+  <div class="container">
+    <img src="/Users/mac/hosted_field/logo.svg" alt="SVG Image" class="logo" />
 
-  <img src="/Users/mac/test_pin_payment/logo.svg" alt="SVG Image" class="logo" />
+    <form id="payment_form" action="/url_to_your_server_to_create_charge" method="post">
+      <label for="name">Full name</label>
+      <div id="name" class="pin-form-field"></div>
+      <div id="errors_for_name" class="error_message"></div>
 
-  <form id="payment_form" action="/url_to_your_server_to_create_charge" method="post">
-    <label for="name">Full name</label><br />
-    <div id="name" class="pin-form-field"></div>
-    <div id="errors_for_name" class="error_message"></div>
+      <label for="number">Card number</label>
+      <div id="number" class="pin-form-field"></div>
+      <div id="errors_for_number" class="error_message"></div>
 
-    <label for="number">Card number</label><br />
-    <div id="number" class="pin-form-field"></div>
-    <div id="errors_for_number" class="error_message"></div>
+      <div class="row">
+        <div class="col">
+          <label for="cvc">CVC</label>
+          <div id="cvc" class="pin-form-field"></div>
+          <div id="errors_for_cvc" class="error_message"></div>
+        </div>
+        <div class="col">
+          <label for="expiry">Expiry</label>
+          <div id="expiry" class="pin-form-field"></div>
+          <div id="errors_for_expiry" class="error_message"></div>
+        </div>
+      </div>
 
-    <label for="cvc">CVC</label><br />
-    <div id="cvc" class="pin-form-field"></div>
-    <div id="errors_for_cvc" class="error_message"></div>
+      <input type="submit" value="Continue" />
+    </form>
 
-    <label for="expiry">Expiry</label><br />
-    <div id="expiry" class="pin-form-field"></div>
-    <div id="errors_for_expiry" class="error_message"></div>
-
-    <input type="submit" value="Submit Payment" />
-  </form>
-
+    <div id="serverResponse"></div>
+  </div>
 
   <script type="text/javascript">
     $(function () {
       var fields = HostedFields.create({
-        sandbox: true,  // Set to false in production
+        sandbox: true,
         autocomplete: true,
         styles: {
           'input': {
@@ -151,14 +193,14 @@
           }
         }
       });
-  
+
       $('#payment_form').on('submit', function (e) {
-        e.preventDefault(); 
+        e.preventDefault();
         if ($('#card_token').length === 0) {
-          tokenizeHostedFields(); 
+          tokenizeHostedFields();
         }
       });
-  
+
       function tokenizeHostedFields() {
         fields.tokenize({
           publishable_api_key: '',
@@ -170,62 +212,51 @@
           address_country: 'Australia'
         }, function (err, response) {
           if (err) {
-            handleErrors(err); 
+            handleErrors(err);
             return;
           }
-  
-  
+
           $('<input>').attr({
             type: 'hidden',
             id: 'card_token',
             name: 'card_token',
             value: response.token
           }).appendTo('#payment_form');
-  
-    
+
           submitFormWithAjax();
         });
       }
-  
-      // Function to submit the form with AJAX
+
       function submitFormWithAjax() {
-        var formData = $('#payment_form').serialize(); // Serialize the form data
-  
+        var formData = $('#payment_form').serialize();
+
         $.ajax({
-          url: '/url_to_your_server_to_create_charge',  // Update with your server URL
+          url: '/url_to_your_server_to_create_charge',
           type: 'POST',
           data: formData,
           success: function (response) {
-            console.log('Server response:', response); // Print response to console
-            // Display response on the page (optional)
+            console.log('Server response:', response);
             $('#serverResponse').text('Server response: ' + JSON.stringify(response));
           },
           error: function (xhr, status, error) {
             console.error('AJAX Error:', error);
-      
             $('#serverResponse').text('Error: ' + error);
           }
         });
       }
-  
-  
+
       function handleErrors(err) {
-        $('.error_message').text(''); // Clear any previous error messages
+        $('.error_message').text('');
         err.messages.forEach(function (errMsg) {
-          $('#errors_for_' + errMsg.param).text(errMsg.message); // Display error message for each error
+          $('#errors_for_' + errMsg.param).text(errMsg.message);
         });
       }
-  
-      // Remove loading message once all fields are ready
+
       fields.on('ready', function () {
-        $('.hosted-fields-loading-message').remove(); // Remove loading message
+        $('.hosted-fields-loading-message').remove();
       });
     });
   </script>
-  
-  <!-- HTML Element to Display Server Response -->
-  <div id="serverResponse"></div>
-  
 </body>
 
 </html>
